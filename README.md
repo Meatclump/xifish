@@ -1,6 +1,6 @@
 # xifish
 FFXI Tracker for fishing statistics.
-Fork of <a href="https://github.com/spkywt/hxifish">hxifish</a> v1.6.0 with some adjustments.
+Fork of <a href="https://github.com/spkywt/hxifish">hxifish</a> v1.6.0, the addon by Espe (spkywt), with some adjustments.
 
 <table>
   <tr>
