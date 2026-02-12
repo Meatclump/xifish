@@ -23,10 +23,10 @@
 * No warranties are given.
 ]]--
 
-addon.author            = 'Espe (spkywt)';
-addon.name              = 'hxifish';
-addon.desc              = 'Tracker for fishing statistics.';
-addon.version           = '1.6.0';
+addon.author            = 'Meatclump';
+addon.name              = 'xifish';
+addon.desc              = 'Tracker for fishing statistics. Fork of hxifish by Espe (spkywt) v1.6.0 https://github.com/spkywt/hxifish/fork';
+addon.version           = '1.0';
 
 -- Ashita Libs
 require 'common'
@@ -45,6 +45,92 @@ local defaults          = require('defaults');
 local globals           = T{
       packetSync        = 0;
 }
+
+ashita                  = ashita or { };
+ashita.ffxi             = ashita.ffxi or { };
+ashita.ffxi.vanatime    = ashita.ffxi.vanatime or { };
+
+-- Scan for patterns..
+ashita.ffxi.vanatime.pointer = ashita.memory.find('FFXiMain.dll', 0, 'B0015EC390518B4C24088D4424005068', 0x34, 0);
+
+-- Signature validation..
+if (ashita.ffxi.vanatime.pointer == 0) then
+    error('vanatime.lua -- signature validation failed!');
+end
+
+----------------------------------------------------------------------------------------------------
+-- func: get_raw_timestamp
+-- desc: Returns the current raw Vana'diel timestamp.
+----------------------------------------------------------------------------------------------------
+local function get_raw_timestamp()
+    local pointer = ashita.memory.read_uint32(ashita.ffxi.vanatime.pointer);
+    return ashita.memory.read_uint32(pointer + 0x0C);
+end 
+ashita.ffxi.vanatime.get_raw_timestamp = get_raw_timestamp;
+
+----------------------------------------------------------------------------------------------------
+-- func: get_formatted_time
+-- desc: Returns the current formatted Vana'diel time.
+----------------------------------------------------------------------------------------------------
+local function get_formatted_time()
+    local timestamp = get_raw_timestamp()
+    local ts = (timestamp + 92514960) * 25
+    local h = (ts / 3600) % 24
+    local m = (ts / 60) % 60
+    local s = ((ts - (math.floor(ts / 60) * 60)))
+
+    return string.format('%02i:%02i', h, m);
+end 
+ashita.ffxi.vanatime.get_timestamp = get_timestamp;
+
+----------------------------------------------------------------------------------------------------
+-- func: get_current_date
+-- desc: Returns a table with the current Vana'diel date.
+----------------------------------------------------------------------------------------------------
+local function get_current_date()
+    local timestamp = get_raw_timestamp();
+    local ts = (timestamp + 92514960) * 25;
+    local day = math.floor(ts / 86400);
+
+    -- Build the date information..
+    local vanadate          = { };
+    vanadate.weekday        = (day % 8);
+    vanadate.day            = (day % 30) + 1;
+    vanadate.month          = ((day % 360) / 30) + 1;
+    vanadate.year           = (day / 360);
+    
+    local days = {
+    "Firesday",
+    "Earthsday",
+    "Watersday",
+    "Windsday",
+    "Iceday",
+    "Lightningsday",
+    "Lightsday",
+    "Darksday"
+    }
+    
+    vanadate.weekday = days[vanadate.weekday + 1]
+
+    return vanadate;
+end
+ashita.ffxi.vanatime.get_current_date = get_current_date;
+
+----------------------------------------------------------------------------------------------------
+-- func: get_weekday
+-- desc: Returns the current week day as a string.
+----------------------------------------------------------------------------------------------------
+local function get_weekday()
+   return get_current_date().weekday
+end
+
+----------------------------------------------------------------------------------------------------
+-- func: get_date
+-- desc: Returns the current date as a string.
+----------------------------------------------------------------------------------------------------
+local function get_date()
+   return math.floor(get_current_date().year) .. "-" .. math.floor(get_current_date().month) .. "-" .. math.floor(get_current_date().day)
+end
 
 ----------------------------------------------------------------------------------------------------
 -- func: UpdateGph
@@ -89,6 +175,10 @@ local function FishingTracker()
       local moon_table = GetMoon(moon);
       imgui.Text('Moon:  ' .. moon_table.MoonPhase .. ' (' .. moon_table.MoonPhasePercent .. '%)');
       
+      -- Time info
+      imgui.Text('Time/Day: ' .. get_formatted_time() .. " - " .. get_weekday())
+      imgui.Text('Date: ' .. get_date())
+
       -- Current Fishing Skill
       imgui.Text('Skill:');
       imgui.SameLine();
@@ -120,6 +210,9 @@ local function FishingTracker()
          imgui.SameLine();
          imgui.TextColored({0.5, 1.0, 0.5, 1.0}, '+' .. config.Fishing.session.skill);
       end
+      imgui.Separator();
+      
+      imgui.Text("Resets: 00 04 06 07 17 18 20");
       imgui.Separator();
       
       -- Catch Stats
@@ -378,11 +471,11 @@ end);
 ashita.events.register('command', 'command_cb', function(e)
    -- Get the arguments of the command..
    local args = e.command:args();
-   if (#args == 0 or not args[1]:any('/hxifish')) then
+   if (#args == 0 or not args[1]:any('/xifish')) then
       return;
    end
    
-   if (args[1]:any('/hxifish')) then
+   if (args[1]:any('/xifish')) then
       config.Fishing.show = true;
    end
 
