@@ -211,7 +211,7 @@ local function FishingTracker()
          imgui.TextColored({0.5, 1.0, 0.5, 1.0}, '+' .. config.Fishing.session.skill);
       end
       imgui.Separator();
-      
+
       imgui.Text("Resets: 00 04 06 07 17 18 20");
       imgui.Separator();
       
@@ -476,7 +476,7 @@ ashita.events.register('command', 'command_cb', function(e)
    end
    
    if (args[1]:any('/xifish')) then
-      config.Fishing.show = true;
+      config.Fishing.show = not config.Fishing.show;
    end
 
    return false;
